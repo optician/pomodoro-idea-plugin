@@ -1,6 +1,6 @@
 package me.optician_owl.intellij.pomodoro
 
-import java.time.LocalDateTime
+import java.time.{Duration, LocalDateTime}
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.{Executors, ThreadFactory, TimeUnit}
 
@@ -24,21 +24,29 @@ case class PomodoroTimer(
     begin: LocalDateTime,
     duration: Long = 0L,
     isCompleted: Boolean = false,
-    isSuccess: Option[Boolean] = None)
+    isSuccess: Option[Boolean] = None) {
+  override def toString: String = {
+    val d    = Duration.ofSeconds(duration)
+    val mins = d.toMinutes
+    val secs = d.minusMinutes(mins).getSeconds
+    val completion = isSuccess match {
+      case Some(bool) if bool  => "Pomodoro completed"
+      case Some(bool) if !bool => "Pomodoro failed"
+      case _                   => "Pomodoro in progress"
+    }
+    s"$completion; Duration $mins min $secs sec"
+  }
+}
 
 class PomodoroService {
 
   private val logger = Logger.getInstance(this.getClass)
 
-  /**
-    * Turn on happens-before.
-    */
-  @volatile private var timer: Option[PomodoroTimer] = None
+  private var timer: Option[PomodoroTimer] = None
 
   /**
     * Duration of high concentration stage in seconds
     */
-//  private val pomodoroPeriod = 5
   private val pomodoroPeriod = 25 * 60
   private val icon           = Messages.getInformationIcon
 
@@ -76,9 +84,12 @@ class PomodoroService {
   }
 
   private def showMessage(prj: String): Unit =
-    Messages.showMessageDialog("Pomodoro has been completed. Take a rest.", prj, icon)
+    timer.synchronized {
+      timer.fold(logger.warn("Timer is empty when showMessage is invoked."))(t =>
+        Messages.showMessageDialog(s"Project $prj; $t.", prj, icon))
+    }
 
-  def start(project: Project): Unit =
+  private def start(project: Project): Unit =
     timer.synchronized(
       if (timer.isEmpty) {
         timer = Some(PomodoroTimer(project.getName, LocalDateTime.now()))
@@ -86,17 +97,24 @@ class PomodoroService {
       } else logger.info("Timer is already running.")
     )
 
-  def finish(): Unit = timer.synchronized {
-    timer.fold {
-      logger.warn("Couldn't finish not running timer.")
-    } { pt =>
-      logger.info(s"stop timer for ${pt.projectName}")
-      // Process success result
-      ApplicationManager.getApplication.invokeLater(() => showMessage(pt.projectName))
-      // Stop scheduler
-      // Crop pomodoro
-      timer = None
-    }
+  private def finish(): Unit =
+    ApplicationManager.getApplication.invokeLater(() =>
+      timer.synchronized {
+        timer.fold {
+          logger.warn("Couldn't finish not running timer.")
+        } { pt =>
+          logger.debug(s"stop timer for ${pt.projectName}")
+          val currDuration = ChronoUnit.SECONDS.between(pt.begin, LocalDateTime.now())
+          timer =
+            Some(pt.copy(duration = currDuration, isCompleted = true, isSuccess = Some(false)))
+          showMessage(pt.projectName)
+          timer = None
+        }
+    })
+
+  def act(project: Project): Unit = timer.synchronized {
+    if (timer.isDefined) finish()
+    else start(project)
   }
 
   def isWorking: Boolean = timer.synchronized(timer.isDefined)
