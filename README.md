@@ -11,7 +11,7 @@ What I try to solve besides the aim of technique:
   
 ## Features
 At now plugin is extremely simple (MVP buzzword!). 
-* Just start timer and it'll show a modal message box after completion.
+* Start/stop timer and it'll show a modal message box with basic information after completion.
 
 ## How to get
 At now only manual build is available.
