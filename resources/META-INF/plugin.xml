@@ -1,0 +1,44 @@
+<idea-plugin>
+    <id>me.optician_owl.intellij.pomodoro</id>
+    <name>Pomodoro</name>
+    <version>0.1.0</version>
+    <vendor email="usurname.r@gmail.com" url="https://github.com/optician/pomodoro-idea-plugin">Danila Matveev</vendor>
+
+    <description><![CDATA[
+      Simple tool for Pomodoro Technique
+    ]]></description>
+
+    <change-notes><![CDATA[
+      First release. Just simple timer.
+    ]]>
+    </change-notes>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <idea-version since-build="145.0"/>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceInterface="me.optician_owl.intellij.pomodoro.PomodoroService"
+                            serviceImplementation="me.optician_owl.intellij.pomodoro.PomodoroService"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <group id="MyPlugin.HumanToolsMenu" text="Hu_man tools" description="Human tools">
+            <add-to-group group-id="MainMenu" anchor="last"/>
+            <action id="Pomodoro.StartTimer" class="me.optician_owl.intellij.pomodoro.StartTimer"
+                    text="Start Pomodoro"/>
+        </group>
+    </actions>
+
+    <project-components>
+        <component>
+            <implementation-class>me.optician_owl.intellij.pomodoro.PomodoroComponent</implementation-class>
+        </component>
+    </project-components>
+</idea-plugin>
